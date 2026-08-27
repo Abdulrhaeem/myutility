@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Settings</title>
+<link rel="manifest" href="manifest.json">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  body { font-family: -apple-system, Roboto, Arial, sans-serif; background: #f5f5f5; color: #212121; }
+  #app { max-width: 480px; margin: 0 auto; min-height: 100vh; background: #f5f5f5; }
+
+  /* ---------- Fake settings screen ---------- */
+  .header { background: #fff; padding: 24px 20px; font-size: 24px; font-weight: 700; }
+  .row { display:flex; justify-content: space-between; align-items:center; background:#fff; padding: 18px 20px; border-bottom: 1px solid #eee; cursor: pointer; }
+  .row:active { background:#f0f0f0; }
+  .row-title { font-size: 16px; }
+  .row-sub { font-size: 13px; color: #9e9e9e; }
+
+  /* ---------- Modal ---------- */
+  .overlay { position: fixed; inset:0; background: rgba(0,0,0,0.5); display:flex; align-items:center; justify-content:center; z-index: 50; }
+  .modal { background:#fff; border-radius: 12px; padding: 24px; width: 85%; max-width: 340px; }
+  .modal h3 { margin-bottom: 12px; font-size: 17px; }
+  .modal input { width:100%; padding: 12px; border:1px solid #ccc; border-radius: 8px; font-size: 16px; margin-bottom: 14px; }
+  .modal .btns { display:flex; justify-content:flex-end; gap: 12px; }
+  .modal button { border:none; background:none; color:#4285F4; font-weight:600; font-size: 15px; padding: 8px 10px; }
+
+  /* ---------- Pairing screen ---------- */
+  .pair-screen { padding: 24px; text-align:center; }
+  .pair-screen h2 { margin-bottom: 20px; }
+  .big-btn { width:100%; padding: 14px; border:none; border-radius: 10px; background:#4285F4; color:#fff; font-size:16px; font-weight:600; margin-top: 10px; }
+  .divider { margin: 18px 0; color:#999; }
+  .pair-screen input { width:100%; padding: 12px; border:1px solid #ccc; border-radius: 8px; font-size: 16px; margin-bottom: 10px; }
+  #roomCodeDisplay { margin-top: 18px; font-size: 18px; font-weight: 700; word-break: break-all; }
+
+  /* ---------- Chat screen ---------- */
+  .chat-wrap { display:flex; flex-direction:column; height: 100vh; }
+  .chat-header { background:#4285F4; color:#fff; padding: 16px 20px; font-size: 20px; }
+  .messages { flex:1; overflow-y:auto; padding: 10px; }
+  .msg { max-width: 75%; margin: 6px 0; padding: 10px 14px; border-radius: 14px; font-size: 15px; word-break: break-word; }
+  .msg.me { background:#4285F4; color:#fff; margin-left:auto; border-bottom-right-radius:4px; }
+  .msg.them { background:#e3e3e3; color:#222; margin-right:auto; border-bottom-left-radius:4px; }
+  .input-bar { display:flex; padding:10px; gap:8px; background:#fff; border-top:1px solid #eee; }
+  .input-bar input { flex:1; padding:12px; border-radius:20px; border:1px solid #ccc; font-size:15px; }
+  .input-bar button { background:#4285F4; color:#fff; border:none; padding: 0 18px; border-radius:20px; font-weight:600; }
+
+  .hidden { display:none !important; }
+</style>
+</head>
+<body>
+
+<div id="app">
+
+  <!-- ===================== FAKE SETTINGS SCREEN ===================== -->
+  <div id="settingsScreen">
+    <div class="header">Settings</div>
+    <div class="row" data-idx="0"><div class="row-title">Wi-Fi</div><div class="row-sub">Connected</div></div>
+    <div class="row" data-idx="1"><div class="row-title">Bluetooth</div><div class="row-sub">Off</div></div>
+    <div class="row" data-idx="2"><div class="row-title">Mobile network</div><div class="row-sub">SIM 1</div></div>
+    <div class="row" data-idx="3"><div class="row-title">Display</div><div class="row-sub">Auto brightness</div></div>
+    <div class="row" data-idx="4"><div class="row-title">Sound & vibration</div><div class="row-sub">Medium</div></div>
+    <div class="row" data-idx="5"><div class="row-title">Apps</div><div class="row-sub">142 apps</div></div>
+    <div class="row" data-idx="6"><div class="row-title">Battery</div><div class="row-sub">78%</div></div>
+    <div class="row" id="triggerRow" data-idx="7"><div class="row-title">Software version</div><div class="row-sub">14</div></div>
+    <div class="row" data-idx="8"><div class="row-title">Storage</div><div class="row-sub">64GB of 128GB used</div></div>
+    <div class="row" data-idx="9"><div class="row-title">Security & privacy</div><div class="row-sub">Up to date</div></div>
+    <div class="row" data-idx="10"><div class="row-title">About device</div><div class="row-sub"></div></div>
+  </div>
+
+  <!-- ===================== PIN MODAL ===================== -->
+  <div id="pinOverlay" class="overlay hidden">
+    <div class="modal">
+      <h3>Developer verification</h3>
+      <input type="tel" id="pinInput" placeholder="PIN" maxlength="8" inputmode="numeric">
+      <div class="btns">
+        <button id="pinCancel">Cancel</button>
+        <button id="pinOk">OK</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== PAIRING SCREEN ===================== -->
+  <div id="pairScreen" class="pair-screen hidden">
+    <h2>Link with your partner</h2>
+    <button class="big-btn" id="createRoomBtn">Create a new room</button>
+    <div class="divider">— or —</div>
+    <input type="text" id="joinCodeInput" placeholder="Enter room code from partner" inputmode="numeric">
+    <button class="big-btn" id="joinRoomBtn">Join room</button>
+    <div id="roomCodeDisplay"></div>
+  </div>
+
+  <!-- ===================== CHAT SCREEN ===================== -->
+  <div id="chatScreen" class="chat-wrap hidden">
+    <div class="chat-header">Chat</div>
+    <div class="messages" id="messagesEl"></div>
+    <div class="input-bar">
+      <input type="text" id="msgInput" placeholder="Message">
+      <button id="sendBtn">Send</button>
+    </div>
+  </div>
+
+</div>
+
+<!-- Firebase (CDN, no build tools needed) -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+
+<script>
+/* =========================================================
+   1) PASTE YOUR OWN FIREBASE CONFIG HERE
+   (Firebase Console -> Project settings -> Your apps -> Web app -> Config)
+   ========================================================= */
+const firebaseConfig = {
+  apiKey: "PASTE_YOUR_API_KEY",
+  authDomain: "PASTE_YOUR_PROJECT.firebaseapp.com",
+  projectId: "PASTE_YOUR_PROJECT_ID",
+  storageBucket: "PASTE_YOUR_PROJECT.appspot.com",
+  messagingSenderId: "PASTE_YOUR_SENDER_ID",
+  appId: "PASTE_YOUR_APP_ID"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+/* =========================================================
+   2) Hidden unlock logic
+   ========================================================= */
+let tapCount = 0;
+let lastTap = 0;
+const TAPS_NEEDED = 7;
+
+// stable per-device id, so "me" vs "partner" can be told apart
+function getMyId() {
+  let id = localStorage.getItem('myId');
+  if (!id) {
+    id = 'u_' + Math.random().toString(36).slice(2, 10);
+    localStorage.setItem('myId', id);
+  }
+  return id;
+}
+const myId = getMyId();
+
+document.querySelectorAll('.row').forEach(row => {
+  row.addEventListener('click', () => {
+    if (row.id !== 'triggerRow') {
+      tapCount = 0;
+      return;
+    }
+    const now = Date.now();
+    if (now - lastTap > 2000) tapCount = 0;
+    lastTap = now;
+    tapCount++;
+    if (tapCount >= TAPS_NEEDED) {
+      tapCount = 0;
+      showPinModal();
+    }
+  });
+});
+
+function showPinModal() {
+  document.getElementById('pinOverlay').classList.remove('hidden');
+  document.getElementById('pinInput').value = '';
+  document.getElementById('pinInput').focus();
+}
+document.getElementById('pinCancel').addEventListener('click', () => {
+  document.getElementById('pinOverlay').classList.add('hidden');
+});
+document.getElementById('pinOk').addEventListener('click', () => {
+  const entered = document.getElementById('pinInput').value.trim();
+  if (!entered) return;
+  const storedPin = localStorage.getItem('chatPin');
+
+  if (!storedPin) {
+    localStorage.setItem('chatPin', entered);
+    document.getElementById('pinOverlay').classList.add('hidden');
+    goToPairOrChat();
+  } else if (storedPin === entered) {
+    document.getElementById('pinOverlay').classList.add('hidden');
+    goToPairOrChat();
+  } else {
+    alert('Incorrect');
+  }
+});
+
+function goToPairOrChat() {
+  const roomId = localStorage.getItem('roomId');
+  document.getElementById('settingsScreen').classList.add('hidden');
+  if (roomId) {
+    openChat(roomId);
+  } else {
+    document.getElementById('pairScreen').classList.remove('hidden');
+  }
+}
+
+/* =========================================================
+   3) Pairing (create / join room)
+   ========================================================= */
+document.getElementById('createRoomBtn').addEventListener('click', async () => {
+  const roomId = String(Math.floor(100000 + Math.random() * 900000));
+  await db.collection('rooms').doc(roomId).set({ createdAt: Date.now() });
+  localStorage.setItem('roomId', roomId);
+  document.getElementById('roomCodeDisplay').textContent =
+    'Room code: ' + roomId + ' — share this with your partner.';
+  setTimeout(() => openChat(roomId), 800);
+});
+
+document.getElementById('joinRoomBtn').addEventListener('click', async () => {
+  const code = document.getElementById('joinCodeInput').value.trim();
+  if (!code) return;
+  const doc = await db.collection('rooms').doc(code).get();
+  if (doc.exists) {
+    localStorage.setItem('roomId', code);
+    openChat(code);
+  } else {
+    alert('Room not found');
+  }
+});
+
+/* =========================================================
+   4) Chat screen
+   ========================================================= */
+function openChat(roomId) {
+  document.getElementById('pairScreen').classList.add('hidden');
+  document.getElementById('chatScreen').classList.remove('hidden');
+
+  const messagesEl = document.getElementById('messagesEl');
+
+  db.collection('rooms').doc(roomId).collection('messages')
+    .orderBy('timestamp', 'asc')
+    .onSnapshot(snapshot => {
+      messagesEl.innerHTML = '';
+      snapshot.forEach(doc => {
+        const m = doc.data();
+        const div = document.createElement('div');
+        div.className = 'msg ' + (m.senderId === myId ? 'me' : 'them');
+        div.textContent = m.text;
+        messagesEl.appendChild(div);
+      });
+      messagesEl.scrollTop = messagesEl.scrollHeight;
+    });
+
+  document.getElementById('sendBtn').addEventListener('click', () => sendMsg(roomId));
+  document.getElementById('msgInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter') sendMsg(roomId);
+  });
+}
+
+function sendMsg(roomId) {
+  const input = document.getElementById('msgInput');
+  const text = input.value.trim();
+  if (!text) return;
+  db.collection('rooms').doc(roomId).collection('messages').add({
+    text, senderId: myId, timestamp: Date.now()
+  });
+  input.value = '';
+}
+
+// If already unlocked + paired earlier (PWA reopened), still start at settings screen
+// every time — unlocking always requires the 7-tap + PIN again for safety.
+</script>
+</body>
+</html>
